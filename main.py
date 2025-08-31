@@ -7,7 +7,7 @@ from slowapi.util import get_remote_address
 from cachetools import TTLCache
 from functools import wraps
 import uvicorn
-import trademonitor, helpers, rolimons
+import trademonitor, helpers
 
 db = helpers.DBHelper()
 helpers.ServiceInstaller(total_ips=100).install_service()
@@ -105,42 +105,6 @@ async def get_recent_trades(request: Request):
     ids = await get_recent()
     return [trade for tid in ids if (trade := await fetch_trade(tid))]
 
-@app.get("/generic/item/info", response_model=Dict[str, rolimons.item.ItemDetails])
-@limiter.limit("60/minute")
-@cache_response
-async def get_generic_item_info(request: Request):
-    try:
-        res = await rolimons.generic_item_info()
-        if isinstance(res, rolimons.errors.Request.Failed):
-            raise HTTPException(500, "Internal Server Error")
-        return res
-    except Exception:
-        raise HTTPException(500, "Internal Server Error")
-
-@app.get("/item/info/{item_id}", response_model=rolimons.item.ItemDetails)
-@limiter.limit("60/minute")
-@cache_response
-async def get_item_info(item_id: str, request: Request):
-    try:
-        res = await rolimons.item_info(item_id=item_id)
-        if isinstance(res, rolimons.errors.Request.Failed):
-            raise HTTPException(500, "Internal Server Error")
-        return res
-    except Exception:
-        raise HTTPException(500, "Internal Server Error")
-
-@app.get("/user/info/{user_id}", response_model=rolimons.user.PlayerInfo)
-@limiter.limit("60/minute")
-@cache_response
-async def get_user_info(user_id: str, request: Request):
-    try:
-        res = await rolimons.user_info(user_id=user_id)
-        if isinstance(res, rolimons.errors.Request.Failed):
-            raise HTTPException(500, "Internal Server Error")
-        return res
-    except Exception:
-        raise HTTPException(500, "Internal Server Error")
-
 async def main():
     await db.initialize()
     server = uvicorn.Server(uvicorn.Config(app, port=8000, reload=False))
@@ -149,3 +113,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
